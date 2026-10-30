@@ -1,60 +1,91 @@
-# Obligatorio de Machine Learning - cancelación de reservas
+# Obligatorio de Machine Learning — cancelación de reservas
 
-Primera etapa de un proyecto de clasificación cuyo objetivo es predecir `is_canceled` a partir del dataset de reservas hoteleras.
+Proyecto de clasificación sobre Hotel Booking Demand. El objetivo es estimar, al registrar una reserva, la probabilidad de que sea cancelada. El modelo final congelado es XGBoost (`xgb_depth4`) con umbral 0,22.
 
 ## Estructura
 
 ```text
 Obligatorio-IA-ML/
-├── data/
-│   └── hotel_bookings.csv
-├── notebooks/
-│   └── obligatorio_ml.ipynb
-├── src/
-├── informe/
+├── data/hotel_bookings.csv
+├── examples/new_reservation.json
+├── models/xgb_cancel_pipeline.joblib
+├── notebooks/obligatorio_ml.ipynb
+├── src/booking_transformers.py
+├── src/model_io.py
+├── predict_reservation.py
 ├── requirements.txt
 └── README.md
 ```
 
-## Alcance de esta etapa
+## Instalación local
 
-- Carga reproducible del CSV.
-- Verificación de dimensiones, tipos, valores ausentes, duplicados y distribución de `is_canceled`.
-- Revisión de fuga de información, con énfasis en `reservation_status` y `reservation_status_date`.
-- Propuesta de partición temporal y validación sin entrenar modelos.
-- Conservación íntegra de los datos: no se eliminan columnas o filas y no se imputan valores.
-
-El PDF provisto es el artículo técnico **Hotel booking demand datasets** (Antonio, Almeida y Nunes, 2019), no una rúbrica o consigna universitaria. Por eso, el notebook separa los requisitos solicitados por el equipo de las definiciones y advertencias metodológicas de la fuente.
-
-## Ejecución local
-
-Desde la carpeta `Obligatorio-IA-ML`:
+Desde la raíz `Obligatorio-IA-ML`:
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+```
+
+Las versiones están fijadas porque los artefactos `joblib`/pickle no constituyen un formato estable entre versiones arbitrarias de Python y scikit-learn. La verificación completa se realizó con Python 3.13.5 y las versiones de `requirements.txt`; cualquier otro runtime, incluido Colab, debe pasar la prueba de inferencia indicada abajo.
+
+## Inferencia independiente del notebook
+
+El modelo puede cargarse y utilizarse sin ejecutar el notebook:
+
+```powershell
+python predict_reservation.py
+```
+
+Para predecir otra reserva, copiar `examples/new_reservation.json`, conservar las 21 variables requeridas y ejecutar:
+
+```powershell
+python predict_reservation.py --input ruta\reserva.json
+```
+
+La salida incluye `probabilidad_cancelacion`, el umbral congelado y `prediccion_cancelacion` (`1` indica riesgo de cancelación igual o superior a 0,22).
+
+Con el JSON incluido, la prueba reproducible debe devolver aproximadamente `0.14662006497`, umbral `0.22`, clase `0` y configuración `xgb_depth4`. El SHA-256 verificado del artefacto es `C1BC29E401E22D7BC4747811CB162037E5463EAD3ACCC99012D6A0C747ACD082`.
+
+El artefacto fue creado originalmente dentro del notebook. Por eso pickle registró `HotelBookingFeatureEngineer` y `QuantileClipper` bajo `__main__`. `src/model_io.py` registra las definiciones equivalentes antes de deserializar. Debe utilizarse `load_frozen_artifact`; un `joblib.load` directo no es portable para este archivo. El cargador no reentrena ni modifica el modelo.
+
+Como todo archivo basado en pickle, el modelo debe cargarse únicamente desde este repositorio o desde otra fuente de confianza.
+
+## Ejecución del notebook
+
+```powershell
 jupyter lab notebooks/obligatorio_ml.ipynb
 ```
 
-El notebook busca el CSV en `data/hotel_bookings.csv` cuando Jupyter se inicia desde la raíz del proyecto y también admite la ruta relativa desde `notebooks/`.
+El notebook busca el CSV en `data/hotel_bookings.csv` al iniciarse desde la raíz y también admite la ruta relativa desde `notebooks/`.
 
 ## Google Colab
 
-1. Subir `notebooks/obligatorio_ml.ipynb` a Colab.
-2. Si el proyecto completo no está disponible en `/content`, ejecutar la celda de carga y seleccionar `hotel_bookings.csv` cuando Colab lo solicite.
-3. Ejecutar **Entorno de ejecución > Ejecutar todo**.
+Para ejecutar el proyecto completo en una sesión limpia:
 
-La celda de carga primero intenta localizar el archivo automáticamente y sólo solicita una subida si no lo encuentra.
+```python
+!git clone https://github.com/LucianaViar/Obligatorio-IA-ML.git
+%cd Obligatorio-IA-ML
+%pip install -r requirements.txt
+```
 
-## Decisiones registradas
+Después se puede abrir el notebook o comprobar la inferencia con:
 
-- `reservation_status` reproduce exactamente el resultado observado: `Check-Out` aparece únicamente con clase 0; `Canceled` y `No-Show`, únicamente con clase 1. Se marca como fuga directa y no se usará como predictor.
-- `reservation_status_date` se registra después de que cambia el estado y puede ocurrir después del evento que se intenta predecir. Se marca como fuga temporal.
-- `assigned_room_type`, `booking_changes`, `country`, `deposit_type` y otras variables dependientes del momento operativo requieren confirmar cuándo estará disponible la predicción. En esta etapa sólo se señalan para auditoría; no se eliminan.
-- Se propone reservar los últimos cuatro meses como test y los cuatro meses previos como validación. El entrenamiento usa datos anteriores. Dentro del entrenamiento, la futura comparación de modelos deberá usar ventanas temporales expansivas sin mezclar el futuro con el pasado.
+```python
+!python predict_reservation.py
+```
 
-## Fuente del dataset
+Si solo se sube el notebook, sus celdas pueden ejecutarse cargando manualmente `hotel_bookings.csv`, pero la inferencia reutilizable requiere además `models/`, `src/` y `predict_reservation.py`. Tras `%pip install`, Colab puede solicitar reiniciar la sesión si ya había importado versiones distintas de NumPy, scikit-learn o XGBoost. La compatibilidad debe considerarse confirmada cuando el comando anterior reproduzca la salida de referencia; no es necesario ejecutar el notebook ni volver a entrenar.
 
-N. Antonio, A. de Almeida y L. Nunes, “Hotel booking demand datasets”, *Data in Brief*, vol. 22, pp. 41-49, 2019. DOI: https://doi.org/10.1016/j.dib.2018.11.126
+## Reproducibilidad y límites
+
+- El artefacto contiene el pipeline completo, las ocho variables derivadas, XGBoost y el umbral 0,22.
+- `reservation_status` y demás variables excluidas por fuga no forman parte de la entrada.
+- El modelo se entrenó con 70.389 reservas y no se vuelve a ajustar durante la inferencia.
+- Las fechas de creación son aproximadas y algunas variables del dataset podrían haber sido actualizadas después de reservar.
+- Hubo exposición histórica de 2.923 registros del test en un EDA anterior, aunque no fueron usados para entrenar ni ajustar el modelo final.
+
+## Fuente
+
+N. Antonio, A. de Almeida y L. Nunes, “Hotel booking demand datasets”, *Data in Brief*, vol. 22, pp. 41–49, 2019. DOI: https://doi.org/10.1016/j.dib.2018.11.126

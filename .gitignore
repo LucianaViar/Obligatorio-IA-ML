@@ -2,5 +2,11 @@
 .runtime/
 __pycache__/
 .ipynb_checkpoints/
+.ipython*/
+.jupyter*/
+.matplotlib*/
+.pytest_cache/
+.cache/
 *.py[cod]
+*.log
 .DS_Store
