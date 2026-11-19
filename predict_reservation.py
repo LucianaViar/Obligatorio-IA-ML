@@ -1,5 +1,3 @@
-"""Carga el modelo congelado y predice una reserva sin ejecutar el notebook."""
-
 from __future__ import annotations
 
 import argparse
@@ -9,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.model_io import load_frozen_artifact
+from src.model_io import load_frozen_artifact, predict_cancellation_probability
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -40,7 +38,7 @@ def predict_reservation(artifact: dict, reservation: dict) -> dict:
         columns=required_features,
     )
 
-    probability = float(artifact["pipeline"].predict_proba(input_frame)[0, 1])
+    probability = float(predict_cancellation_probability(artifact, input_frame)[0])
     threshold = float(artifact["threshold"])
     return {
         "probabilidad_cancelacion": probability,

@@ -1,6 +1,6 @@
 # Obligatorio de Machine Learning — cancelación de reservas
 
-Proyecto de clasificación sobre Hotel Booking Demand. El objetivo es estimar, al registrar una reserva, la probabilidad de que sea cancelada. El modelo final congelado es XGBoost (`xgb_depth4`) con umbral 0,22.
+Proyecto de clasificación sobre Hotel Booking Demand. El objetivo es estimar, al registrar una reserva, la probabilidad de que sea cancelada. El modelo final congelado es XGBoost (`xgb_depth4`) con calibración Platt y umbral 0,29.
 
 ## Estructura
 
@@ -44,9 +44,9 @@ Para predecir otra reserva, copiar `examples/new_reservation.json`, conservar la
 python predict_reservation.py --input ruta\reserva.json
 ```
 
-La salida incluye `probabilidad_cancelacion`, el umbral congelado y `prediccion_cancelacion` (`1` indica riesgo de cancelación igual o superior a 0,22).
+La salida incluye `probabilidad_cancelacion`, el umbral congelado y `prediccion_cancelacion` (`1` indica riesgo de cancelación igual o superior a 0,29).
 
-Con el JSON incluido, la prueba reproducible debe devolver aproximadamente `0.14662006497`, umbral `0.22`, clase `0` y configuración `xgb_depth4`. El SHA-256 verificado del artefacto es `C1BC29E401E22D7BC4747811CB162037E5463EAD3ACCC99012D6A0C747ACD082`.
+Con el JSON incluido, la prueba reproducible debe devolver aproximadamente `0.22419869998`, umbral `0.29`, clase `0` y configuración `xgb_depth4`. El SHA-256 verificado del artefacto es `7FE1EFA73B847BE6845942A5B335FE480FCC5290E31086478484AC51604C9445`.
 
 El artefacto fue creado originalmente dentro del notebook. Por eso pickle registró `HotelBookingFeatureEngineer` y `QuantileClipper` bajo `__main__`. `src/model_io.py` registra las definiciones equivalentes antes de deserializar. Debe utilizarse `load_frozen_artifact`; un `joblib.load` directo no es portable para este archivo. El cargador no reentrena ni modifica el modelo.
 
@@ -80,7 +80,7 @@ Si solo se sube el notebook, sus celdas pueden ejecutarse cargando manualmente `
 
 ## Reproducibilidad y límites
 
-- El artefacto contiene el pipeline completo, las ocho variables derivadas, XGBoost y el umbral 0,22.
+- El artefacto contiene el pipeline completo, las ocho variables derivadas, XGBoost, el calibrador Platt y el umbral 0,29.
 - `reservation_status` y demás variables excluidas por fuga no forman parte de la entrada.
 - El modelo se entrenó con 70.389 reservas y no se vuelve a ajustar durante la inferencia.
 - Las fechas de creación son aproximadas y algunas variables del dataset podrían haber sido actualizadas después de reservar.
@@ -89,3 +89,5 @@ Si solo se sube el notebook, sus celdas pueden ejecutarse cargando manualmente `
 ## Fuente
 
 N. Antonio, A. de Almeida y L. Nunes, “Hotel booking demand datasets”, *Data in Brief*, vol. 22, pp. 41–49, 2019. DOI: https://doi.org/10.1016/j.dib.2018.11.126
+
+Artículo y datos publicados bajo licencia CC BY 4.0: https://creativecommons.org/licenses/by/4.0/

@@ -1,9 +1,3 @@
-"""Transformaciones personalizadas usadas por el pipeline congelado.
-
-Estas clases reproducen las definiciones con las que se entrenó el artefacto.
-No aprenden información fuera de ``fit`` ni consultan el objetivo.
-"""
-
 from __future__ import annotations
 
 import numpy as np
